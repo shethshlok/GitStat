@@ -11,22 +11,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let statsViewModel = StatsViewModel()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 1. Setup UI elements immediately so they appear in menu bar
         setupStatusItem()
         setupPopover()
         setupEventMonitor()
+        
+        // 2. Setup reactive observers
         setupObservers()
         
-        // Initial fetch if username exists
-        if let username = UserDefaults.standard.string(forKey: "githubUsername"), !username.isEmpty {
-            statsViewModel.fetchStats()
-        }
+        // Initial data sync happens in the background via StatsViewModel init or explicit call
     }
     
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitStat")
+            button.image = NSImage(systemSymbolName: "cat.fill", accessibilityDescription: "GitStat")
             button.imagePosition = .imageLeading
             button.action = #selector(togglePopover)
             button.target = self
@@ -47,7 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 if isLoading {
                     self?.statusItem.button?.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Refreshing")
                 } else {
-                    self?.statusItem.button?.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "GitStat")
+                    self?.statusItem.button?.image = NSImage(systemSymbolName: "cat.fill", accessibilityDescription: "GitStat")
                 }
             }
             .store(in: &cancellables)

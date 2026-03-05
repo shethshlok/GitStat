@@ -15,9 +15,10 @@ struct PopoverView: View {
                 VisualEffectView(material: .popover, blendingMode: .withinWindow)
                     .ignoresSafeArea()
                 
-                if !statsViewModel.hasUsername {
+                if !statsViewModel.isAuthenticated {
                     noUsernameView
                 } else if statsViewModel.isLoading && statsViewModel.stats.totalCommits == 0 {
+
                     loadingView
                 } else if let error = statsViewModel.errorMessage {
                     errorView(message: error)
@@ -33,7 +34,7 @@ struct PopoverView: View {
         .frame(width: 320, height: 480)
         .onAppear {
             statsViewModel.startAutoRefresh()
-            if statsViewModel.hasUsername && statsViewModel.stats.totalCommits == 0 {
+            if statsViewModel.isAuthenticated && statsViewModel.stats.totalCommits == 0 {
                 statsViewModel.fetchStats()
             }
         }
@@ -45,40 +46,76 @@ struct PopoverView: View {
     // MARK: - Components
     
     private var headerView: some View {
-        HStack(spacing: 12) {
-            if let avatarUrl = statsViewModel.userAvatar, let url = URL(string: avatarUrl) {
-                AsyncImage(url: url) { image in
-                    image.resizable()
-                         .aspectRatio(contentMode: .fit)
-                         .frame(width: 24, height: 24)
-                         .clipShape(Circle())
-                         .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1))
-                } placeholder: {
-                    Circle().fill(Color.secondary.opacity(0.2)).frame(width: 24, height: 24)
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                if let avatarUrl = statsViewModel.userAvatar, let url = URL(string: avatarUrl) {
+                    AsyncImage(url: url) { image in
+                        image.resizable()
+                             .aspectRatio(contentMode: .fit)
+                             .frame(width: 24, height: 24)
+                             .clipShape(Circle())
+                             .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1))
+                    } placeholder: {
+                        Circle().fill(Color.secondary.opacity(0.2)).frame(width: 24, height: 24)
+                    }
+                } else {
+                    Image(systemName: "terminal.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.green)
                 }
-            } else {
-                Image(systemName: "terminal.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.green)
-            }
-            
-            VStack(alignment: .leading, spacing: 0) {
-                Text(statsViewModel.isAuthenticated ? statsViewModel.username : "GitStat")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
                 
-                if statsViewModel.isAuthenticated {
-                    Text("Last 24h Activity")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(statsViewModel.isAuthenticated ? statsViewModel.username : "GitStat")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    
+                    if statsViewModel.isAuthenticated {
+                        Picker("", selection: $statsViewModel.selectedRange) {
+                            ForEach(TimeRange.allCases) { range in
+                                Text(range.label).tag(range)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .frame(width: 120)
+                    }
                 }
+                
+                Spacer()
+                
+                refreshButton
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             
-            Spacer()
-            
-            refreshButton
+            if statsViewModel.importState != .idle {
+                VStack(spacing: 0) {
+                    if statsViewModel.importState == .completed {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 8))
+                            Text("SYNC_COMPLETE")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundColor(.green)
+                        .padding(.vertical, 4)
+                    } else {
+                        ProgressView(value: statsViewModel.importState == .backfilling ? statsViewModel.importProgress : nil)
+                            .progressViewStyle(.linear)
+                            .controlSize(.small)
+                            .scaleEffect(x: 1, y: 0.5, anchor: .center)
+                        
+                        Text(statsViewModel.importState == .backfilling ? "BACKFILLING_HISTORY..." : "SYNCING_24H...")
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundColor(.orange)
+                            .padding(.vertical, 2)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .background(statsViewModel.importState == .completed ? Color.green.opacity(0.05) : Color.clear)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
     }
     
     private var refreshButton: some View {
@@ -140,6 +177,7 @@ struct PopoverView: View {
                         }
                         .padding(.bottom, 6)
                     }
+                    .animation(.easeInOut, value: statsViewModel.stats.totalCommits)
                     
                     // Compact Line Metrics
                     HStack(spacing: 12) {
@@ -149,6 +187,7 @@ struct PopoverView: View {
                         let net = statsViewModel.stats.linesAdded - statsViewModel.stats.linesDeleted
                         metricTag(label: "NET", value: (net >= 0 ? "+" : "") + formatNumber(net), color: .blue)
                     }
+                    .animation(.easeInOut, value: statsViewModel.stats.linesAdded)
                 }
                 .padding(.horizontal, 16)
                 
@@ -164,16 +203,17 @@ struct PopoverView: View {
                         HStack(spacing: 2) {
                             Capsule()
                                 .fill(Color.green.opacity(0.8))
-                                .frame(width: 288 * (added / total))
+                                .frame(width: max(0, 288 * (added / total)))
                             
                             Capsule()
                                 .fill(Color.red.opacity(0.8))
-                                .frame(width: 288 * (deleted / total))
+                                .frame(width: max(0, 288 * (deleted / total)))
                         }
                     }
                 }
                 .frame(height: 6)
                 .padding(.horizontal, 16)
+                .animation(.spring(), value: statsViewModel.stats.linesAdded)
                 
                 // Activity Log
                 VStack(alignment: .leading, spacing: 12) {
@@ -268,14 +308,21 @@ struct PopoverView: View {
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(.secondary)
                 
-                Button(action: {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                if #available(macOS 14.0, *) {
+                    SettingsLink {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: openSettings) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)
@@ -284,6 +331,17 @@ struct PopoverView: View {
     }
     
     // MARK: - Helpers
+
+    private func openSettings() {
+        if #available(macOS 14.0, *) {
+            // Native SwiftUI 4+ Settings handling is usually via SettingsLink, 
+            // but for a button action we use the standard NSApp selector
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
     
     private func formatNumber(_ number: Int) -> String {
         let absNum = abs(number)

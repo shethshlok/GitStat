@@ -1,5 +1,15 @@
 import Foundation
 
+struct HistoricalPush: Codable, Identifiable {
+    let id: String // GitHub event id
+    let date: Date
+    let repoName: String
+    let branchName: String
+    let commits: Int
+    let linesAdded: Int
+    let linesDeleted: Int
+}
+
 // MARK: - GitHub API Models
 
 struct GitHubEvent: Codable, Identifiable {
@@ -111,7 +121,6 @@ actor GitHubAPIService {
     private let baseURL = "https://api.github.com"
     private let session: URLSession
     
-    // In-memory cache managed safely by the actor
     private var pushCache: [String: (commits: Int, added: Int, deleted: Int)] = [:]
     private let maxCacheSize = 100
     
@@ -147,30 +156,48 @@ actor GitHubAPIService {
         }
     }
     
-    func fetchEvents(for username: String) async throws -> [GitHubEvent] {
-        guard let url = URL(string: "\(baseURL)/users/\(username)/events") else { throw GitHubAPIError.invalidURL }
-        
-        var request = URLRequest(url: url)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("GitStat/1.0", forHTTPHeaderField: "User-Agent")
-        if let token = accessToken {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    func fetchEvents(for username: String, allPages: Bool = false, progress: ((Double) -> Void)? = nil) async throws -> [GitHubEvent] {
+        var allEvents: [GitHubEvent] = []
+        let pages = allPages ? 3 : 1 
+
+        for page in 1...pages {
+            let urlString = "\(baseURL)/users/\(username)/events?per_page=100&page=\(page)"
+            guard let url = URL(string: urlString) else { break }
+
+            Logger.shared.log("API_REQUEST: \(urlString)")
+
+            var request = URLRequest(url: url)
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            request.setValue("GitStat/1.0", forHTTPHeaderField: "User-Agent")
+            if let token = accessToken {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else { 
+                Logger.shared.log("API_ERROR: Invalid response type", level: .error)
+                break 
+            }
+
+            Logger.shared.log("API_RESPONSE: [\(httpResponse.statusCode)] for page \(page)")
+
+            if httpResponse.statusCode == 200 {
+                let events = try JSONDecoder().decode([GitHubEvent].self, from: data)
+                allEvents.append(contentsOf: events)
+                Logger.shared.log("API_DATA: Decoded \(events.count) events")
+                progress?(Double(page) / Double(pages))
+                if events.count < 100 { break }
+            } else {
+                Logger.shared.log("API_ERROR: Unexpected status code \(httpResponse.statusCode)", level: .error)
+                break
+            }
         }
-        
-        let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else { throw GitHubAPIError.invalidResponse }
-        
-        if httpResponse.statusCode == 200 {
-            return try JSONDecoder().decode([GitHubEvent].self, from: data)
-        } else {
-            throw GitHubAPIError.invalidResponse
-        }
+        progress?(1.0)
+        return allEvents
     }
 
     func fetchCompareData(repo: String, before: String, head: String) async -> (commits: Int, added: Int, deleted: Int) {
         let cacheKey = "\(repo)-\(before)-\(head)"
-        
-        // Actor isolation ensures thread-safe access to pushCache without NSLock
         if let cached = pushCache[cacheKey] {
             return cached
         }
@@ -181,7 +208,9 @@ actor GitHubAPIService {
             "\(baseURL)/repos/\(repo)/compare/\(before)...\(head)"
 
         guard let url = URL(string: urlString) else { return (1, 0, 0) }
-        
+
+        Logger.shared.log("API_COMPARE_REQ: \(urlString)")
+
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("GitStat/1.0", forHTTPHeaderField: "User-Agent")
@@ -191,13 +220,15 @@ actor GitHubAPIService {
 
         do {
             let (data, response) = try await session.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return (1, 0, 0)
-            }
-            
+            guard let httpResponse = response as? HTTPURLResponse else { return (1, 0, 0) }
+
+            Logger.shared.log("API_COMPARE_RES: [\(httpResponse.statusCode)]")
+
+            if httpResponse.statusCode != 200 { return (1, 0, 0) }
+
             let result: (Int, Int, Int)
             let decoder = JSONDecoder()
-            
+
             if isInitialPush {
                 struct SingleCommit: Codable {
                     struct Stats: Codable { let additions: Int; let deletions: Int }
@@ -215,60 +246,75 @@ actor GitHubAPIService {
                 }
                 result = (res.totalCommits, added, deleted)
             }
-            
-            // Safe cache management within actor
+
+            Logger.shared.log("API_COMPARE_DATA: Commits=\(result.0), Add=\(result.1), Del=\(result.2)")
+
             if pushCache.count >= maxCacheSize {
                 pushCache.removeValue(forKey: pushCache.keys.first!)
             }
             pushCache[cacheKey] = result
             return result
         } catch {
+            Logger.shared.log("API_COMPARE_ERROR: \(error.localizedDescription)", level: .error)
             return (1, 0, 0)
         }
     }
-    
-    func calculateStats(from events: [GitHubEvent]) async -> CommitStats {
+
+    func calculateStats(from events: [GitHubEvent]) async -> (CommitStats, [HistoricalPush]) {
+        Logger.shared.log("STATS_CALC: Processing \(events.count) events")
+
         let calendar = Calendar.current
         let twentyFourHoursAgo = calendar.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
-        
+
         var stats = CommitStats()
         var uniqueRepos = Set<Int>()
-        var uniqueBranches = Set<String>()
-        
+        var historicalPushes: [HistoricalPush] = []
+
         let dateFormatter = ISO8601DateFormatter()
         let fractionalFormatter = ISO8601DateFormatter()
         fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        let pushEvents = events.filter { event in
-            guard let eventDate = fractionalFormatter.date(from: event.createdAt) ?? dateFormatter.date(from: event.createdAt) else { return false }
-            if eventDate >= twentyFourHoursAgo {
-                uniqueRepos.insert(event.repo.id)
-                if let ref = event.payload?.ref { uniqueBranches.insert("\(event.repo.id)-\(ref)") }
-                return event.type == "PushEvent" && event.payload?.head != nil && event.payload?.before != nil
-            }
-            return false
-        }.prefix(10) 
-        
-        await withTaskGroup(of: (Int, Int, Int).self) { group in
-            for event in pushEvents {
-                if let head = event.payload?.head, let before = event.payload?.before {
-                    group.addTask {
-                        // self reference in actor's TaskGroup is safe
-                        await self.fetchCompareData(repo: event.repo.name, before: before, head: head)
-                    }
+
+        for event in events {
+            guard let eventDate = fractionalFormatter.date(from: event.createdAt) ?? dateFormatter.date(from: event.createdAt) else { continue }
+
+            if event.type == "PushEvent", 
+               let head = event.payload?.head, 
+               let before = event.payload?.before {
+
+                let (commits, added, deleted) = await self.fetchCompareData(repo: event.repo.name, before: before, head: head)
+
+                let push = HistoricalPush(
+                    id: event.id,
+                    date: eventDate,
+                    repoName: event.repo.name,
+                    branchName: event.payload?.ref?.replacingOccurrences(of: "refs/heads/", with: "") ?? "unknown",
+                    commits: commits,
+                    linesAdded: added,
+                    linesDeleted: deleted
+                )
+
+                historicalPushes.append(push)
+
+                if eventDate >= twentyFourHoursAgo {
+                    stats.totalCommits += commits
+                    stats.linesAdded += added
+                    stats.linesDeleted += deleted
+                    uniqueRepos.insert(event.repo.id)
                 }
             }
-            
-            for await (commits, added, deleted) in group {
-                stats.totalCommits += commits
-                stats.linesAdded += added
-                stats.linesDeleted += deleted
-            }
         }
-        
+
+        var uniqueBranches = Set<String>()
+        for push in historicalPushes where push.date >= twentyFourHoursAgo {
+            uniqueBranches.insert("\(push.repoName):\(push.branchName)")
+        }
+
         stats.reposCount = uniqueRepos.count
         stats.branchesCount = uniqueBranches.count
         stats.lastUpdated = Date()
-        return stats
+
+        Logger.shared.log("STATS_RESULT: 24h Commits=\(stats.totalCommits), Added=\(stats.linesAdded), Deleted=\(stats.linesDeleted)")
+        return (stats, historicalPushes)
     }
+
 }
