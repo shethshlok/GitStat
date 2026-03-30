@@ -13,25 +13,38 @@ class LocalStore {
     
     func savePushes(_ newPushes: [HistoricalPush]) {
         var existing = loadPushes()
-        let existingIds = Set(existing.map { $0.id })
+        var updatedCount = 0
+        var insertedCount = 0
         
-        let uniqueNew = newPushes.filter { !existingIds.contains($0.id) }
+        for newPush in newPushes {
+            if let index = existing.firstIndex(where: { $0.id == newPush.id }) {
+                // Update existing entry if data changed (Rewriting history accurately)
+                if existing[index].commits != newPush.commits || 
+                   existing[index].linesAdded != newPush.linesAdded ||
+                   existing[index].linesDeleted != newPush.linesDeleted {
+                    existing[index] = newPush
+                    updatedCount += 1
+                }
+            } else {
+                // New entry
+                existing.append(newPush)
+                insertedCount += 1
+            }
+        }
         
-        if uniqueNew.isEmpty {
-            Logger.shared.log("STORE: No new pushes to save.")
+        if updatedCount == 0 && insertedCount == 0 {
+            Logger.shared.log("STORE: No changes to save.")
             return
         }
         
-        existing.append(contentsOf: uniqueNew)
-        
-        // Keep last 90 days
+        // Keep last 90 days to keep it lightweight
         let ninetyDaysAgo = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
         existing = existing.filter { $0.date >= ninetyDaysAgo }
         
         do {
             let data = try JSONEncoder().encode(existing)
             try data.write(to: fileURL, options: .atomic)
-            Logger.shared.log("STORE: Successfully saved \(uniqueNew.count) new pushes. Total in ledger: \(existing.count)")
+            Logger.shared.log("STORE: Ledger sync complete. Inserted: \(insertedCount), Updated: \(updatedCount). Total: \(existing.count)")
         } catch {
             Logger.shared.log("STORE_ERROR: Failed to save ledger: \(error.localizedDescription)", level: .error)
         }

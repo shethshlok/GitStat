@@ -41,12 +41,19 @@ class StatsViewModel: ObservableObject {
     @Published var selectedMetric: ChartMetric = .commits
     @Published var recentEvents: [GitHubEvent] = []
     @Published var isLoading: Bool = false
+    @Published var isExporting: Bool = false
     @Published var importState: ImportState = .idle
     @Published var importProgress: Double = 0
     @Published var errorMessage: String?
     @Published var username: String = ""
     @Published var isAuthenticated: Bool = false
     @Published var userAvatar: String?
+    @Published var showActivityInMenuBar: Bool = false {
+        didSet { UserDefaults.standard.set(showActivityInMenuBar, forKey: "showActivityInMenuBar") }
+    }
+    @Published var showActivityLog: Bool = true {
+        didSet { UserDefaults.standard.set(showActivityLog, forKey: "showActivityLog") }
+    }
     @Published var selectedRange: TimeRange = .day24h {
         didSet {
             Task { @MainActor in
@@ -62,21 +69,27 @@ class StatsViewModel: ObservableObject {
     private var currentFetchTask: Task<Void, Never>?
     
     init() {
-        // Load saved username and avatar
-        let savedUsername = UserDefaults.standard.string(forKey: "githubUsername") ?? ""
-        let savedAvatar = UserDefaults.standard.string(forKey: "githubAvatar")
+        // Load UI-only data from UserDefaults
+        self.username = UserDefaults.standard.string(forKey: "githubUsername") ?? ""
+        self.userAvatar = UserDefaults.standard.string(forKey: "githubAvatar")
+        self.showActivityInMenuBar = UserDefaults.standard.bool(forKey: "showActivityInMenuBar")
+        self.showActivityLog = UserDefaults.standard.object(forKey: "showActivityLog") as? Bool ?? true
         
-        self.username = savedUsername
-        self.userAvatar = savedAvatar
-        
-        // Initial stats from local store needs to happen on MainActor
         Task { @MainActor in
+            // Initial stats from local store
             self.updateStatsFromLocalStore()
             
-            // Check if already authenticated
-            if KeychainManager.shared.getToken() != nil {
-                self.isAuthenticated = true
-                self.fetchProfileAndStats()
+            // Sync with the API service's cached Keychain data (zero prompts here)
+            let isAuth = await apiService.isAuthenticated
+            let apiUsername = await apiService.username
+            
+            self.isAuthenticated = isAuth
+            if let apiUsername = apiUsername, !apiUsername.isEmpty {
+                self.username = apiUsername
+            }
+            
+            if self.isAuthenticated {
+                self.fetchProfileAndStats(firstRun: false)
             }
         }
     }
@@ -96,7 +109,9 @@ class StatsViewModel: ObservableObject {
         Task {
             do {
                 let token = try await authService.login()
-                _ = KeychainManager.shared.saveToken(token)
+                // Initial save with an empty username, which will be filled by profile fetch
+                _ = KeychainManager.shared.save(token: token, username: self.username)
+                await apiService.refreshToken()
                 self.isAuthenticated = true
                 fetchProfileAndStats(firstRun: true)
             } catch {
@@ -111,7 +126,10 @@ class StatsViewModel: ObservableObject {
     @MainActor
     func logout() {
         currentFetchTask?.cancel()
-        _ = KeychainManager.shared.deleteToken()
+        KeychainManager.shared.clearAll()
+        Task {
+            await apiService.refreshToken()
+        }
         self.isAuthenticated = false
         self.username = ""
         self.userAvatar = nil
@@ -134,8 +152,18 @@ class StatsViewModel: ObservableObject {
                 let profile = try await apiService.fetchUserProfile()
                 if Task.isCancelled { return }
                 
+                let oldUsername = self.username
                 self.username = profile.login
                 self.userAvatar = profile.avatarUrl
+                
+                // Only update Keychain if the username changed OR if we are doing a first-run sync
+                if self.username != oldUsername || firstRun {
+                    if let token = await apiService.accessToken {
+                        _ = KeychainManager.shared.save(token: token, username: self.username)
+                        await apiService.refreshToken()
+                    }
+                }
+                
                 UserDefaults.standard.set(self.username, forKey: "githubUsername")
                 UserDefaults.standard.set(self.userAvatar, forKey: "githubAvatar")
                 
@@ -154,7 +182,7 @@ class StatsViewModel: ObservableObject {
     func fetchStats() {
         currentFetchTask?.cancel()
         currentFetchTask = Task {
-            await performFetchStats()
+            await performFetchStats(allPages: true) // Manual refresh always syncs full history
         }
     }
     
@@ -165,12 +193,17 @@ class StatsViewModel: ObservableObject {
             return
         }
         
+        // If we are starting up and already have history, we might want to skip the 'allPages' 
+        // backfill even if it was requested, to save API points and time.
+        let hasHistory = !localStore.loadPushes().isEmpty
+        let shouldBackfill = allPages && (!hasHistory || importState == .idle)
+        
         isLoading = true
         importProgress = 0
         errorMessage = nil
         
         do {
-            // PHASE 1: Fetch first page (last 24h usually)
+            // PHASE 1: Always sync the latest activity (24H window)
             importState = .loading24h
             let firstPageEvents = try await apiService.fetchEvents(for: username, allPages: false)
             if Task.isCancelled { return }
@@ -179,7 +212,7 @@ class StatsViewModel: ObservableObject {
             let (new24hStats, initialHistoricalPushes) = await apiService.calculateStats(from: firstPageEvents)
             localStore.savePushes(initialHistoricalPushes)
             
-            // Update UI immediately with fresh 24h data
+            // Update UI with fresh data
             if selectedRange == .day24h {
                 self.stats = new24hStats
                 self.dailyStats = localStore.getDailyStats(for: 1)
@@ -187,8 +220,9 @@ class StatsViewModel: ObservableObject {
                 updateStatsFromLocalStore()
             }
             
-            // PHASE 2: Backfill history if requested
-            if allPages {
+            // PHASE 2: Only backfill if requested AND we don't already have history
+            // (Manual refresh will always trigger this because allPages is true)
+            if allPages && (!hasHistory || importState == .backfilling) {
                 importState = .backfilling
                 let allEvents = try await apiService.fetchEvents(for: username, allPages: true) { progress in
                     Task { @MainActor in
@@ -199,8 +233,6 @@ class StatsViewModel: ObservableObject {
                 
                 let (_, historicalPushes) = await apiService.calculateStats(from: allEvents)
                 localStore.savePushes(historicalPushes)
-                
-                // Update UI again with full history
                 updateStatsFromLocalStore()
             }
             
@@ -208,7 +240,6 @@ class StatsViewModel: ObservableObject {
                 self.isLoading = false
                 self.importState = .completed
                 
-                // Linger in completed state for 3 seconds
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 
                 if !Task.isCancelled {
@@ -241,7 +272,7 @@ class StatsViewModel: ObservableObject {
     
     func startAutoRefresh() {
         refreshTimer?.invalidate()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.fetchStats()
             }

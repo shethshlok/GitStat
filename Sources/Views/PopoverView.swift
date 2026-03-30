@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PopoverView: View {
     @EnvironmentObject var statsViewModel: StatsViewModel
@@ -105,7 +106,7 @@ struct PopoverView: View {
                             .controlSize(.small)
                             .scaleEffect(x: 1, y: 0.5, anchor: .center)
                         
-                        Text(statsViewModel.importState == .backfilling ? "BACKFILLING_HISTORY..." : "SYNCING_24H...")
+                        Text(statsViewModel.importState == .backfilling ? "BACKFILLING_HISTORY..." : "SYNCING...")
                             .font(.system(size: 7, weight: .bold, design: .monospaced))
                             .foregroundColor(.orange)
                             .padding(.vertical, 2)
@@ -216,27 +217,31 @@ struct PopoverView: View {
                 .animation(.spring(), value: statsViewModel.stats.linesAdded)
                 
                 // Activity Log
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("ACTIVITY_LOG")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 16)
-                    
-                    if statsViewModel.recentEvents.isEmpty {
-                        Text("No data packet received.")
-                            .font(.system(size: 11, design: .monospaced))
+                if statsViewModel.showActivityLog {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("ACTIVITY_LOG")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 16)
-                    } else {
-                        VStack(spacing: 1) {
-                            ForEach(statsViewModel.recentEvents.prefix(6)) { event in
-                                eventRow(event)
+                        
+                        if statsViewModel.recentEvents.isEmpty {
+                            Text("No data packet received.")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 16)
+                        } else {
+                            VStack(spacing: 1) {
+                                ForEach(statsViewModel.recentEvents.prefix(6)) { event in
+                                    eventRow(event)
+                                }
                             }
                         }
                     }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
             .padding(.vertical, 16)
+            .animation(.spring(), value: statsViewModel.showActivityLog)
         }
     }
     
@@ -308,6 +313,21 @@ struct PopoverView: View {
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(.secondary)
                 
+                Button(action: exportStatsAsImage) {
+                    if statsViewModel.isExporting {
+                        ProgressView()
+                            .controlSize(.small)
+                            .scaleEffect(0.5)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(statsViewModel.isExporting)
+                .help("Export Stats as PNG")
+                
                 if #available(macOS 14.0, *) {
                     SettingsLink {
                         Image(systemName: "slider.horizontal.3")
@@ -334,13 +354,90 @@ struct PopoverView: View {
 
     private func openSettings() {
         if #available(macOS 14.0, *) {
-            // Native SwiftUI 4+ Settings handling is usually via SettingsLink, 
-            // but for a button action we use the standard NSApp selector
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } else {
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }
         NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @Environment(\.colorScheme) var colorScheme
+    
+    @MainActor
+    private func exportStatsAsImage() {
+        let stats = statsViewModel.stats
+        let username = statsViewModel.username
+        let avatarUrl = statsViewModel.userAvatar
+        let range = statsViewModel.selectedRange
+        let currentColorScheme = colorScheme
+        
+        statsViewModel.isExporting = true
+        
+        Task {
+            // 1. Asynchronous fetch of avatar data
+            var loadedAvatar: NSImage? = nil
+            if let avatarUrl = avatarUrl, let url = URL(string: avatarUrl) {
+                do {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    loadedAvatar = NSImage(data: data)
+                } catch {
+                    Logger.shared.log("EXPORT_WARNING: Avatar load failed", level: .debug)
+                }
+            }
+            
+            // 2. Perform rendering on MainActor with Window Context
+            await MainActor.run {
+                let shareView = StatsShareView(
+                    stats: stats,
+                    username: username,
+                    avatarImage: loadedAvatar,
+                    range: range
+                ).environment(\.colorScheme, currentColorScheme)
+                
+                // Create a hidden window to provide a valid context for the renderer
+                let rect = NSRect(x: 0, y: 0, width: 1000, height: 800)
+                let window = NSWindow(
+                    contentRect: rect,
+                    styleMask: [.borderless],
+                    backing: .buffered,
+                    defer: false
+                )
+                window.isReleasedWhenClosed = false
+                
+                let hostingView = NSHostingView(rootView: shareView)
+                hostingView.frame = rect
+                window.contentView = hostingView
+                
+                guard let bitmapRep = hostingView.bitmapImageRepForCachingDisplay(in: rect) else {
+                    Logger.shared.log("EXPORT_ERROR: Could not create bitmap rep", level: .error)
+                    statsViewModel.isExporting = false
+                    return
+                } 
+                
+                hostingView.cacheDisplay(in: rect, to: bitmapRep)
+                
+                guard let pngData = bitmapRep.representation(using: .png, properties: [:]) else {
+                    Logger.shared.log("EXPORT_ERROR: Could not create PNG data", level: .error)
+                    statsViewModel.isExporting = false
+                    return
+                }
+                
+                let savePanel = NSSavePanel()
+                savePanel.allowedContentTypes = [.png]
+                savePanel.canCreateDirectories = true
+                savePanel.isExtensionHidden = false
+                savePanel.title = "Export GitStat Report"
+                savePanel.nameFieldStringValue = "GitStat_\(range.label)_\(Date().formatted(.dateTime.year().month().day())).png"
+                
+                statsViewModel.isExporting = false
+                
+                savePanel.begin { [weak savePanel] response in
+                    guard response == .OK, let url = savePanel?.url else { return }
+                    try? pngData.write(to: url)
+                    window.close() // Clean up the hidden window
+                }
+            }
+        }
     }
     
     private func formatNumber(_ number: Int) -> String {

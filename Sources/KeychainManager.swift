@@ -1,56 +1,59 @@
 import Foundation
 import Security
 
+struct GitHubAuthData: Codable {
+    let accessToken: String
+    let username: String
+}
+
 class KeychainManager {
     static let shared = KeychainManager()
-    private let service = "com.gitstat.github-token"
-    private let account = "github-access-token"
+    private let service = "com.gitstat.auth"
+    private let account = "github-auth-v1"
     
-    func saveToken(_ token: String) -> Bool {
-        guard let data = token.data(using: .utf8) else { return false }
+    func save(token: String, username: String) -> Bool {
+        let authData = GitHubAuthData(accessToken: token, username: username)
+        guard let data = try? JSONEncoder().encode(authData) else { return false }
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecValueData as String: data
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]
         
-        // Remove existing item if it exists
         SecItemDelete(query as CFDictionary)
-        
-        // Add new item
         let status = SecItemAdd(query as CFDictionary, nil)
         return status == errSecSuccess
     }
     
-    func getToken() -> String? {
+    func getAuth() -> GitHubAuthData? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]
         
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         
         if status == errSecSuccess, let data = result as? Data {
-            return String(data: data, encoding: .utf8)
+            return try? JSONDecoder().decode(GitHubAuthData.self, from: data)
         }
         
         return nil
     }
     
-    func deleteToken() -> Bool {
+    func clearAll() {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
-        
-        let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess || status == errSecItemNotFound
+        SecItemDelete(query as CFDictionary)
     }
 }

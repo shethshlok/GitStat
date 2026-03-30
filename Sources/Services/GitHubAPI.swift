@@ -124,14 +124,33 @@ actor GitHubAPIService {
     private var pushCache: [String: (commits: Int, added: Int, deleted: Int)] = [:]
     private let maxCacheSize = 100
     
+    private var cachedAuth: GitHubAuthData?
+    
     private init() {
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .returnCacheDataElseLoad
         self.session = URLSession(configuration: config)
+        
+        // This is the ONE and ONLY read from Keychain on startup
+        self.cachedAuth = KeychainManager.shared.getAuth()
     }
     
-    private var accessToken: String? {
-        KeychainManager.shared.getToken()
+    /// Refreshes the in-memory cache from the Keychain. 
+    /// Should be called after login or logout.
+    func refreshToken() {
+        self.cachedAuth = KeychainManager.shared.getAuth()
+    }
+    
+    var isAuthenticated: Bool {
+        cachedAuth?.accessToken != nil
+    }
+    
+    var username: String? {
+        cachedAuth?.username
+    }
+    
+    var accessToken: String? {
+        cachedAuth?.accessToken
     }
     
     func fetchUserProfile() async throws -> GitHubActor {

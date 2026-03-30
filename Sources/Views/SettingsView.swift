@@ -9,19 +9,18 @@ struct SettingsView: View {
     @State private var hoveredDate: Date?
     
     var body: some View {
-        ZStack {
-            VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
-                .ignoresSafeArea()
+        TabView {
+            generalTab
+                .tabItem {
+                    Label("General", systemImage: "gearshape")
+                }
             
-            VStack(alignment: .leading, spacing: 20) {
-                headerSection
-                chartSection
-                accountSection
-                footerSection
-            }
-            .padding(24)
+            analyticsTab
+                .tabItem {
+                    Label("Analytics", systemImage: "chart.bar.xaxis")
+                }
         }
-        .frame(width: 540, height: 460)
+        .frame(width: 500, height: 420)
         .alert("Error", isPresented: $showingAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -43,178 +42,185 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Sections
+    // MARK: - Tabs
     
-    private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("GITSTAT_ANALYTICS")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+    private var generalTab: some View {
+        VStack(spacing: 0) {
+            Form {
+                Section("GitHub Account") {
+                    if statsViewModel.isAuthenticated {
+                        authenticatedUserRow
+                    } else {
+                        loginButton
+                    }
+                }
                 
-                Text("Usage Statistics")
-                    .font(.system(size: 20, weight: .bold))
-            }
-            
-            Spacer()
-            
-            Picker("", selection: $statsViewModel.selectedRange) {
-                ForEach(TimeRange.chartableRanges) { range in
-                    Text(range.label).tag(range)
+                Section("Display Preferences") {
+                    Toggle("Show stats in menu bar", isOn: $statsViewModel.showActivityInMenuBar)
+                    Text("Displays your current commits and line counts next to the menu bar icon.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Toggle("Show activity log in main view", isOn: $statsViewModel.showActivityLog)
+                    Text("Shows the detailed list of recent GitHub events in the main popover.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Section("Data Management") {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Local Historical Ledger")
+                                .font(.body)
+                            Text("\(statsViewModel.stats.totalCommits) commits // \(statsViewModel.stats.reposCount) projects indexed.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button("Clear Cache...") {
+                            showingClearConfirmation = true
+                        }
+                    }
                 }
             }
-            .pickerStyle(.segmented)
-            .controlSize(.small)
-            .frame(width: 80)
-            .onAppear {
-                if statsViewModel.selectedRange == .day24h {
-                    statsViewModel.selectedRange = .week1w
-                }
-            }
-        }
-    }
-    
-    private var chartSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+            .formStyle(.grouped)
+            
+            Divider()
+            
             HStack {
-                Picker("Metric", selection: $statsViewModel.selectedMetric) {
-                    ForEach(ChartMetric.allCases) { metric in
-                        Text(metric.rawValue).tag(metric)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .controlSize(.small)
-                .labelsHidden()
-                .frame(width: 240)
-                
+                Text("v1.0.2 // STABLE")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(.secondary.opacity(0.5))
                 Spacer()
-                
-                if let hoveredDate = hoveredDate,
-                   let stat = statsViewModel.dailyStats.first(where: { Calendar.current.isDate($0.date, inSameDayAs: hoveredDate) }) {
-                    HStack(spacing: 12) {
-                        chartValueLabel(label: "VALUE", value: "\(metricValue(for: stat))")
-                        chartValueLabel(label: "DATE", value: formatDateShort(hoveredDate))
-                    }
+                Button("Done") {
+                    NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil)
                 }
+                .keyboardShortcut(.defaultAction)
             }
-            
-            chartView
-                .frame(height: 140)
-                .padding(.top, 8)
+            .padding()
+            .background(Color(nsColor: .windowBackgroundColor))
         }
-        .padding(16)
-        .background(Color.primary.opacity(0.03))
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.05), lineWidth: 1))
     }
     
-    private var accountSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("AUTHENTICATED_USER")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(.secondary)
-            
-            if statsViewModel.isAuthenticated {
-                authenticatedUserRow
-            } else {
-                loginButton
+    private var analyticsTab: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack {
+                        Text("Usage Trends")
+                            .font(.headline)
+                        Spacer()
+                        Picker("", selection: $statsViewModel.selectedRange) {
+                            ForEach(TimeRange.chartableRanges) { range in
+                                Text(range.label).tag(range)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .controlSize(.small)
+                        .frame(width: 100)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Picker("Metric", selection: $statsViewModel.selectedMetric) {
+                                ForEach(ChartMetric.allCases) { metric in
+                                    Text(metric.rawValue).tag(metric)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                            .controlSize(.small)
+                            .frame(width: 220)
+                            
+                            Spacer()
+                            
+                            // Fixed-width container for hover info
+                            HStack(spacing: 12) {
+                                if let hoveredDate = hoveredDate,
+                                   let stat = statsViewModel.dailyStats.first(where: { Calendar.current.isDate($0.date, inSameDayAs: hoveredDate) }) {
+                                    chartValueLabel(label: "VALUE", value: "\(metricValue(for: stat))")
+                                    chartValueLabel(label: "DATE", value: formatDateShort(hoveredDate))
+                                } else {
+                                    chartValueLabel(label: "VALUE", value: "--").opacity(0)
+                                    chartValueLabel(label: "DATE", value: "--- --").opacity(0)
+                                }
+                            }
+                            .frame(width: 100, alignment: .trailing)
+                        }
+                        
+                        chartView
+                            .frame(height: 180)
+                    }
+                    .padding()
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.05), lineWidth: 1))
+                    
+                    Text("Analytics are aggregated daily from your local historical ledger. Sync full history to update deeper trends.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(24)
             }
+            
+            Divider()
+            
+            HStack {
+                Spacer()
+                Button("Done") {
+                    NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            .background(Color(nsColor: .windowBackgroundColor))
         }
     }
+    
+    // MARK: - Components
     
     private var authenticatedUserRow: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             if let avatarUrl = statsViewModel.userAvatar, let url = URL(string: avatarUrl) {
                 AsyncImage(url: url) { image in
                     image.resizable()
                          .aspectRatio(contentMode: .fit)
-                         .frame(width: 40, height: 40)
-                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+                         .frame(width: 32, height: 32)
+                         .clipShape(Circle())
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.2)).frame(width: 40, height: 40)
+                    Circle().fill(Color.secondary.opacity(0.2)).frame(width: 32, height: 32)
                 }
             }
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(statsViewModel.username)
-                    .font(.system(size: 14, weight: .bold, design: .monospaced))
-                
-                if statsViewModel.isLoading {
-                    Text("Syncing...")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundColor(.orange)
-                } else {
-                    HStack(spacing: 4) {
-                        Circle().fill(Color.green).frame(width: 5, height: 5)
-                        Text("Connected")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                }
+                    .font(.headline)
+                Text(statsViewModel.isLoading ? "Syncing..." : "Connected")
+                    .font(.caption)
+                    .foregroundColor(statsViewModel.isLoading ? .orange : .green)
             }
             
             Spacer()
             
-            Button(action: { statsViewModel.logout() }) {
-                Text("LOGOUT")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.red.opacity(0.8))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.red.opacity(0.05))
-                    .cornerRadius(4)
+            Button("Logout", role: .destructive) {
+                statsViewModel.logout()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.primary.opacity(0.02))
-        .cornerRadius(10)
     }
     
     private var loginButton: some View {
         Button(action: { statsViewModel.loginWithGitHub() }) {
             HStack {
                 Image(systemName: "person.badge.key.fill")
-                Text("AUTHENTICATE_WITH_GITHUB")
+                Text("Authenticate with GitHub")
             }
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(Color.primary)
-            .foregroundColor(.white)
-            .cornerRadius(6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
     }
-    
-    private var footerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Total volume indexed: \(statsViewModel.stats.totalCommits) commits across \(statsViewModel.stats.reposCount) projects.")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.secondary)
-                
-                Button(action: { showingClearConfirmation = true }) {
-                    Text("CLEAR_LOCAL_CACHE")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundColor(.red.opacity(0.6))
-                }
-                .buttonStyle(.plain)
-            }
-            
-            Spacer()
-            
-            Button("Close") {
-                NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil)
-            }
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
-            .buttonStyle(.borderedProminent)
-        }
-    }
-    
-    // MARK: - Chart Components
     
     private var chartView: some View {
         Chart {
