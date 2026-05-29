@@ -5,6 +5,7 @@ struct PopoverView: View {
     @EnvironmentObject var statsViewModel: StatsViewModel
     @State private var isHoveringRefresh = false
     @State private var hoveredStat: String? = nil
+    @State private var showTotalLines = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -78,10 +79,9 @@ struct PopoverView: View {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                         .controlSize(.small)
-                        .frame(width: 120)
-                    }
-                }
-                
+                        .frame(width: 160)
+                        }
+                        }
                 Spacer()
                 
                 refreshButton
@@ -186,9 +186,19 @@ struct PopoverView: View {
                         metricTag(label: "DEL", value: "-\(formatNumber(statsViewModel.stats.linesDeleted))", color: .red)
                         
                         let net = statsViewModel.stats.linesAdded - statsViewModel.stats.linesDeleted
-                        metricTag(label: "NET", value: (net >= 0 ? "+" : "") + formatNumber(net), color: .blue)
+                        let total = statsViewModel.stats.linesAdded + statsViewModel.stats.linesDeleted
+                        
+                        Button(action: { showTotalLines.toggle() }) {
+                            metricTag(
+                                label: showTotalLines ? "TOT" : "NET",
+                                value: (showTotalLines ? "" : (net >= 0 ? "+" : "")) + formatNumber(showTotalLines ? total : net),
+                                color: .blue
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .animation(.easeInOut, value: statsViewModel.stats.linesAdded)
+                    .animation(.easeInOut, value: showTotalLines)
                 }
                 .padding(.horizontal, 16)
                 

@@ -217,7 +217,9 @@ actor GitHubAPIService {
 
     func fetchCompareData(repo: String, before: String, head: String) async -> (commits: Int, added: Int, deleted: Int) {
         let cacheKey = "\(repo)-\(before)-\(head)"
-        if let cached = pushCache[cacheKey] {
+        
+        // 1. Check persistent local store first (Efficiency: once day is over, we never call API again)
+        if let cached = await MainActor.run(body: { LocalStore.shared.getCachedCompare(for: cacheKey) }) {
             return cached
         }
 
@@ -268,10 +270,12 @@ actor GitHubAPIService {
 
             Logger.shared.log("API_COMPARE_DATA: Commits=\(result.0), Add=\(result.1), Del=\(result.2)")
 
-            if pushCache.count >= maxCacheSize {
-                pushCache.removeValue(forKey: pushCache.keys.first!)
+            // 2. Save to persistent cache for future restarts/refreshes
+            let finalResult = result
+            await MainActor.run {
+                LocalStore.shared.saveCachedCompare(pushId: cacheKey, commits: finalResult.0, added: finalResult.1, deleted: finalResult.2)
             }
-            pushCache[cacheKey] = result
+
             return result
         } catch {
             Logger.shared.log("API_COMPARE_ERROR: \(error.localizedDescription)", level: .error)

@@ -2,88 +2,98 @@ import Foundation
 
 class LocalStore {
     static let shared = LocalStore()
-    private let fileName = "commit_history.json"
+    private let historyFile = "commit_history.json"
+    private let compareCacheFile = "api_compare_cache.json"
     
-    private var fileURL: URL {
+    private var supportDir: URL {
         let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let supportDir = paths[0].appendingPathComponent("GitStat", isDirectory: true)
-        try? FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
-        return supportDir.appendingPathComponent(fileName)
+        let dir = paths[0].appendingPathComponent("GitStat", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
+    
+    // MARK: - Comparison Cache (Persistent)
+    // Stores: push_id -> (commits, added, deleted)
+    private var compareCache: [String: [Int]] = [:]
+    
+    init() {
+        loadCompareCache()
+    }
+    
+    private func loadCompareCache() {
+        let url = supportDir.appendingPathComponent(compareCacheFile)
+        if let data = try? Data(contentsOf: url),
+           let decoded = try? JSONDecoder().decode([String: [Int]].self, from: data) {
+            self.compareCache = decoded
+        }
+    }
+    
+    func getCachedCompare(for pushId: String) -> (Int, Int, Int)? {
+        guard let vals = compareCache[pushId], vals.count == 3 else { return nil }
+        return (vals[0], vals[1], vals[2])
+    }
+    
+    func saveCachedCompare(pushId: String, commits: Int, added: Int, deleted: Int) {
+        compareCache[pushId] = [commits, added, deleted]
+        // Save periodically or after batch
+        let url = supportDir.appendingPathComponent(compareCacheFile)
+        if let data = try? JSONEncoder().encode(compareCache) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    // MARK: - History Ledger
     
     func savePushes(_ newPushes: [HistoricalPush]) {
         var existing = loadPushes()
-        var updatedCount = 0
-        var insertedCount = 0
+        var updated = false
         
         for newPush in newPushes {
             if let index = existing.firstIndex(where: { $0.id == newPush.id }) {
-                // Update existing entry if data changed (Rewriting history accurately)
                 if existing[index].commits != newPush.commits || 
-                   existing[index].linesAdded != newPush.linesAdded ||
-                   existing[index].linesDeleted != newPush.linesDeleted {
+                   existing[index].linesAdded != newPush.linesAdded {
                     existing[index] = newPush
-                    updatedCount += 1
+                    updated = true
                 }
             } else {
-                // New entry
                 existing.append(newPush)
-                insertedCount += 1
+                updated = true
             }
         }
         
-        if updatedCount == 0 && insertedCount == 0 {
-            Logger.shared.log("STORE: No changes to save.")
-            return
-        }
-        
-        // Keep last 90 days to keep it lightweight
-        let ninetyDaysAgo = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
-        existing = existing.filter { $0.date >= ninetyDaysAgo }
-        
-        do {
-            let data = try JSONEncoder().encode(existing)
-            try data.write(to: fileURL, options: .atomic)
-            Logger.shared.log("STORE: Ledger sync complete. Inserted: \(insertedCount), Updated: \(updatedCount). Total: \(existing.count)")
-        } catch {
-            Logger.shared.log("STORE_ERROR: Failed to save ledger: \(error.localizedDescription)", level: .error)
+        if updated {
+            // Keep 90 days
+            let limit = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
+            existing = existing.filter { $0.date >= limit }
+            
+            if let data = try? JSONEncoder().encode(existing) {
+                try? data.write(to: supportDir.appendingPathComponent(historyFile), options: .atomic)
+            }
         }
     }
     
     func loadPushes() -> [HistoricalPush] {
-        if !FileManager.default.fileExists(atPath: fileURL.path) {
+        let url = supportDir.appendingPathComponent(historyFile)
+        guard let data = try? Data(contentsOf: url),
+              let pushes = try? JSONDecoder().decode([HistoricalPush].self, from: data) else {
             return []
         }
-        
-        do {
-            let data = try Data(contentsOf: fileURL)
-            let pushes = try JSONDecoder().decode([HistoricalPush].self, from: data)
-            return pushes
-        } catch {
-            Logger.shared.log("STORE_WARNING: Ledger decoding failed (possibly old format). Resetting... \(error.localizedDescription)", level: .debug)
-            // If decoding fails (e.g. format change), we return empty to start fresh 
-            // rather than crashing or showing garbage.
-            return []
-        }
+        return pushes
     }
 
     func getStats(for days: Int) -> CommitStats {
         let history = loadPushes()
         let now = Date()
-        
         let cutoff: Date
+        
         if days == 1 {
-            // Exactly 24 hours ago (sliding window)
             cutoff = now.addingTimeInterval(-24 * 60 * 60)
         } else {
-            // Start of day N days ago (calendar days)
-            let calendar = Calendar.current
-            let nDaysAgo = calendar.date(byAdding: .day, value: -days, to: now) ?? now
-            cutoff = calendar.startOfDay(for: nDaysAgo)
+            let nDaysAgo = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
+            cutoff = Calendar.current.startOfDay(for: nDaysAgo)
         }
         
         let filtered = history.filter { $0.date >= cutoff }
-        
         var stats = CommitStats()
         var uniqueRepos = Set<String>()
         var uniqueBranches = Set<String>()
@@ -99,8 +109,6 @@ class LocalStore {
         stats.reposCount = uniqueRepos.count
         stats.branchesCount = uniqueBranches.count
         stats.lastUpdated = Date()
-        
-        Logger.shared.log("STORE_STATS: Aggregated \(filtered.count) pushes for range \(days)d. Additions: \(stats.linesAdded)")
         return stats
     }
 
@@ -108,9 +116,8 @@ class LocalStore {
         let history = loadPushes()
         let calendar = Calendar.current
         let now = Date()
-        
         var dailyBuckets: [Date: DailyStat] = [:]
-        // Use calendar days for the buckets
+        
         for i in 0..<days {
             if let date = calendar.date(byAdding: .day, value: -i, to: now) {
                 let normalizedDate = calendar.startOfDay(for: date)
@@ -131,13 +138,13 @@ class LocalStore {
                 dailyBuckets[normalizedDate] = bucket
             }
         }
-        
         return dailyBuckets.values.sorted { $0.date < $1.date }
     }
     
     func clearCache() {
-        try? FileManager.default.removeItem(at: fileURL)
-        Logger.shared.log("STORE: Cache cleared successfully.")
+        try? FileManager.default.removeItem(at: supportDir.appendingPathComponent(historyFile))
+        try? FileManager.default.removeItem(at: supportDir.appendingPathComponent(compareCacheFile))
+        compareCache.removeAll()
     }
     
     struct DailyStat: Identifiable {

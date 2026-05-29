@@ -5,6 +5,7 @@ enum TimeRange: Int, CaseIterable, Identifiable {
     case day24h = 1
     case week1w = 7
     case month1m = 30
+    case custom = 0
     
     var id: Int { self.rawValue }
     var label: String {
@@ -12,12 +13,13 @@ enum TimeRange: Int, CaseIterable, Identifiable {
         case .day24h: return "24H"
         case .week1w: return "1W"
         case .month1m: return "1M"
+        case .custom: return "CUST"
         }
     }
     
     // Ranges that support historical charting
     static var chartableRanges: [TimeRange] {
-        return [.week1w, .month1m]
+        return [.week1w, .month1m, .custom]
     }
 }
 
@@ -48,11 +50,20 @@ class StatsViewModel: ObservableObject {
     @Published var username: String = ""
     @Published var isAuthenticated: Bool = false
     @Published var userAvatar: String?
+    
     @Published var showActivityInMenuBar: Bool = false {
         didSet { UserDefaults.standard.set(showActivityInMenuBar, forKey: "showActivityInMenuBar") }
     }
     @Published var showActivityLog: Bool = true {
         didSet { UserDefaults.standard.set(showActivityLog, forKey: "showActivityLog") }
+    }
+    @Published var customDays: Int = 14 {
+        didSet { 
+            UserDefaults.standard.set(customDays, forKey: "customDays")
+            if selectedRange == .custom { 
+                Task { @MainActor in updateStatsFromLocalStore() }
+            }
+        }
     }
     @Published var selectedRange: TimeRange = .day24h {
         didSet {
@@ -69,26 +80,27 @@ class StatsViewModel: ObservableObject {
     private var currentFetchTask: Task<Void, Never>?
     
     init() {
-        // Load UI-only data from UserDefaults
+        // Load initial data from UserDefaults
         self.username = UserDefaults.standard.string(forKey: "githubUsername") ?? ""
         self.userAvatar = UserDefaults.standard.string(forKey: "githubAvatar")
         self.showActivityInMenuBar = UserDefaults.standard.bool(forKey: "showActivityInMenuBar")
         self.showActivityLog = UserDefaults.standard.object(forKey: "showActivityLog") as? Bool ?? true
+        let savedCustom = UserDefaults.standard.integer(forKey: "customDays")
+        self.customDays = savedCustom == 0 ? 14 : savedCustom
         
         Task { @MainActor in
-            // Initial stats from local store
+            // Initial sync with local store
             self.updateStatsFromLocalStore()
             
-            // Sync with the API service's cached Keychain data (zero prompts here)
-            let isAuth = await apiService.isAuthenticated
-            let apiUsername = await apiService.username
-            
-            self.isAuthenticated = isAuth
-            if let apiUsername = apiUsername, !apiUsername.isEmpty {
-                self.username = apiUsername
-            }
-            
-            if self.isAuthenticated {
+            // Check authentication from current Keychain implementation
+            if let auth = KeychainManager.shared.getAuth() {
+                self.isAuthenticated = true
+                self.username = auth.username
+                
+                // Refresh API actor's memory
+                await apiService.refreshToken()
+                
+                // Light sync on launch
                 self.fetchProfileAndStats(firstRun: false)
             }
         }
@@ -96,8 +108,9 @@ class StatsViewModel: ObservableObject {
     
     @MainActor
     private func updateStatsFromLocalStore() {
-        self.stats = localStore.getStats(for: selectedRange.rawValue)
-        self.dailyStats = localStore.getDailyStats(for: selectedRange.rawValue)
+        let days = selectedRange == .custom ? customDays : selectedRange.rawValue
+        self.stats = localStore.getStats(for: days)
+        self.dailyStats = localStore.getDailyStats(for: days)
     }
     
     @MainActor
@@ -109,9 +122,12 @@ class StatsViewModel: ObservableObject {
         Task {
             do {
                 let token = try await authService.login()
-                // Initial save with an empty username, which will be filled by profile fetch
-                _ = KeychainManager.shared.save(token: token, username: self.username)
+                // Use the correct argument labels for the current KeychainManager
+                _ = KeychainManager.shared.save(token: token, username: "temp_user")
+                
+                // Refresh token in API actor
                 await apiService.refreshToken()
+                
                 self.isAuthenticated = true
                 fetchProfileAndStats(firstRun: true)
             } catch {
@@ -127,9 +143,11 @@ class StatsViewModel: ObservableObject {
     func logout() {
         currentFetchTask?.cancel()
         KeychainManager.shared.clearAll()
-        Task {
+        
+        Task { @MainActor in
             await apiService.refreshToken()
         }
+        
         self.isAuthenticated = false
         self.username = ""
         self.userAvatar = nil
@@ -152,16 +170,12 @@ class StatsViewModel: ObservableObject {
                 let profile = try await apiService.fetchUserProfile()
                 if Task.isCancelled { return }
                 
-                let oldUsername = self.username
                 self.username = profile.login
                 self.userAvatar = profile.avatarUrl
                 
-                // Only update Keychain if the username changed OR if we are doing a first-run sync
-                if self.username != oldUsername || firstRun {
-                    if let token = await apiService.accessToken {
-                        _ = KeychainManager.shared.save(token: token, username: self.username)
-                        await apiService.refreshToken()
-                    }
+                // Update Keychain with real username and current token
+                if let auth = KeychainManager.shared.getAuth() {
+                    _ = KeychainManager.shared.save(token: auth.accessToken, username: self.username)
                 }
                 
                 UserDefaults.standard.set(self.username, forKey: "githubUsername")
@@ -182,7 +196,7 @@ class StatsViewModel: ObservableObject {
     func fetchStats() {
         currentFetchTask?.cancel()
         currentFetchTask = Task {
-            await performFetchStats(allPages: true) // Manual refresh always syncs full history
+            await performFetchStats(allPages: true)
         }
     }
     
@@ -193,17 +207,13 @@ class StatsViewModel: ObservableObject {
             return
         }
         
-        // If we are starting up and already have history, we might want to skip the 'allPages' 
-        // backfill even if it was requested, to save API points and time.
         let hasHistory = !localStore.loadPushes().isEmpty
-        let shouldBackfill = allPages && (!hasHistory || importState == .idle)
         
         isLoading = true
         importProgress = 0
         errorMessage = nil
         
         do {
-            // PHASE 1: Always sync the latest activity (24H window)
             importState = .loading24h
             let firstPageEvents = try await apiService.fetchEvents(for: username, allPages: false)
             if Task.isCancelled { return }
@@ -212,7 +222,6 @@ class StatsViewModel: ObservableObject {
             let (new24hStats, initialHistoricalPushes) = await apiService.calculateStats(from: firstPageEvents)
             localStore.savePushes(initialHistoricalPushes)
             
-            // Update UI with fresh data
             if selectedRange == .day24h {
                 self.stats = new24hStats
                 self.dailyStats = localStore.getDailyStats(for: 1)
@@ -220,8 +229,6 @@ class StatsViewModel: ObservableObject {
                 updateStatsFromLocalStore()
             }
             
-            // PHASE 2: Only backfill if requested AND we don't already have history
-            // (Manual refresh will always trigger this because allPages is true)
             if allPages && (!hasHistory || importState == .backfilling) {
                 importState = .backfilling
                 let allEvents = try await apiService.fetchEvents(for: username, allPages: true) { progress in
@@ -239,9 +246,7 @@ class StatsViewModel: ObservableObject {
             if !Task.isCancelled {
                 self.isLoading = false
                 self.importState = .completed
-                
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
-                
                 if !Task.isCancelled {
                     self.importState = .idle
                 }

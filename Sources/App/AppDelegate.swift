@@ -67,12 +67,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] isLoading in
                 guard let self = self, let button = self.statusItem.button else { return }
-
-                if isLoading {
-                    button.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: "Refreshing")
-                } else {
-                    button.image = self.getAppIcon()
-                }
+                
+                // Always keep the app icon visible
+                button.image = self.getAppIcon()
+                
+                // If we want a subtle indicator, we can add it to the title or use a multi-image setup
+                // For now, ensuring the icon NEVER disappears is the priority.
             }
             .store(in: &cancellables)
     }

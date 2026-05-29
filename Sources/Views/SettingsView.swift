@@ -110,6 +110,16 @@ struct SettingsView: View {
                         Text("Usage Trends")
                             .font(.headline)
                         Spacer()
+                        
+                        if statsViewModel.selectedRange == .custom {
+                            Stepper(value: $statsViewModel.customDays, in: 2...90) {
+                                Text("\(statsViewModel.customDays) days")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            }
+                            .controlSize(.small)
+                            .padding(.trailing, 8)
+                        }
+                        
                         Picker("", selection: $statsViewModel.selectedRange) {
                             ForEach(TimeRange.chartableRanges) { range in
                                 Text(range.label).tag(range)
@@ -117,7 +127,13 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.segmented)
                         .controlSize(.small)
-                        .frame(width: 100)
+                        .frame(width: 140)
+                    }
+                    .onAppear {
+                        // Default to 1W when viewing trends
+                        if statsViewModel.selectedRange == .day24h {
+                            statsViewModel.selectedRange = .week1w
+                        }
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
