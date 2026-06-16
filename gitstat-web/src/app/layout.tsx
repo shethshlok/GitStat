@@ -33,6 +33,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${chakraPetch.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <Script id="microsoft-clarity" strategy="afterInteractive">

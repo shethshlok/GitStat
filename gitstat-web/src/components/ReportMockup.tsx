@@ -5,11 +5,16 @@ import { useEffect, useState, useRef } from "react";
 
 function RollingNumber({ targetNumber, prefix = "", suffix = "" }: { targetNumber: number, prefix?: string, suffix?: string }) {
   const [displayValue, setDisplayValue] = useState("0");
+  const [isMounted, setIsMounted] = useState(false);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   useEffect(() => {
-    if (isInView) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isInView && isMounted) {
       const controls = animate(0, targetNumber, {
         duration: 2,
         ease: [0.16, 1, 0.3, 1],
@@ -19,9 +24,9 @@ function RollingNumber({ targetNumber, prefix = "", suffix = "" }: { targetNumbe
       });
       return () => controls.stop();
     }
-  }, [isInView, targetNumber]);
+  }, [isInView, targetNumber, isMounted]);
 
-  return <span ref={ref}>{prefix}{displayValue}{suffix}</span>;
+  return <span ref={ref}>{prefix}{isMounted ? displayValue : "0"}{suffix}</span>;
 }
 
 export function ReportMockup() {

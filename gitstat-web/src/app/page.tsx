@@ -8,11 +8,16 @@ import { ReportMockup } from "../components/ReportMockup";
 
 function RollingNumber({ targetNumber }: { targetNumber: number }) {
   const [displayValue, setDisplayValue] = useState("0");
+  const [isMounted, setIsMounted] = useState(false);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   useEffect(() => {
-    if (isInView) {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isInView && isMounted) {
       const controls = animate(0, targetNumber, {
         duration: 2,
         ease: [0.16, 1, 0.3, 1],
@@ -22,12 +27,13 @@ function RollingNumber({ targetNumber }: { targetNumber: number }) {
       });
       return () => controls.stop();
     }
-  }, [isInView, targetNumber]);
+  }, [isInView, targetNumber, isMounted]);
 
-  return <span ref={ref}>{displayValue}</span>;
+  return <span ref={ref}>{isMounted ? displayValue : "0"}</span>;
 }
 
 function MagneticButton({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
+  const [isMounted, setIsMounted] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -36,8 +42,12 @@ function MagneticButton({ children, className, onClick }: { children: React.Reac
   const dx = useSpring(x, springConfig);
   const dy = useSpring(y, springConfig);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
+    if (!ref.current || !isMounted) return;
     const { clientX, clientY } = e;
     const { left, top, width, height } = ref.current.getBoundingClientRect();
     const centerX = left + width / 2;
@@ -47,6 +57,7 @@ function MagneticButton({ children, className, onClick }: { children: React.Reac
   };
 
   const handleMouseLeave = () => {
+    if (!isMounted) return;
     x.set(0);
     y.set(0);
   };
@@ -57,7 +68,7 @@ function MagneticButton({ children, className, onClick }: { children: React.Reac
       onClick={onClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={{ x: dx, y: dy }}
+      style={{ x: isMounted ? dx : 0, y: isMounted ? dy : 0 }}
       className={className}
     >
       {children}
