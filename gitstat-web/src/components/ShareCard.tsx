@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CommitStats, GitHubActor } from '@/lib/github';
+import { CommitStats, GitHubActor } from '../lib/github';
 import { Github, Calendar, Activity } from 'lucide-react';
 
 interface ShareCardProps {

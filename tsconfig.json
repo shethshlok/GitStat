@@ -19,7 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./gitstat-web/src/*"]
     }
   },
   "include": [
