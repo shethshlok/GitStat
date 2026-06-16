@@ -127,15 +127,7 @@ export function ReportMockup() {
           {/* Footer Branding */}
           <div className="flex flex-col md:flex-row items-center justify-between mt-8 md:mt-10 pt-6 border-t border-white/5 gap-4 md:gap-0">
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 opacity-40">
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="3"/>
-                  <line x1="12" y1="3" x2="12" y2="6"/>
-                  <line x1="12" y1="18" x2="12" y2="21"/>
-                  <line x1="3" y1="12" x2="6" y2="12" />
-                  <line x1="18" y1="12" x2="21" y2="12" />
-                </svg>
-              </div>
+              <img src="/menubar-icon.png" alt="" className="w-5 h-5 opacity-40 invert" />
               <span className="text-[10px] font-mono font-black text-white/30 tracking-widest">GENERATED_BY_GITSTAT</span>
             </div>
             <span className="text-[10px] font-mono font-bold text-white/40 tracking-widest">INDEXED_PROJECTS: 8</span>

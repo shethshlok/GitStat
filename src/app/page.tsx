@@ -124,8 +124,11 @@ export default function Home() {
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         className="fixed top-0 left-0 right-0 z-[100] p-6 md:px-12 flex justify-between items-center mix-blend-difference"
       >
-        <div className="font-mono text-xs tracking-[0.4em] font-bold uppercase">
-          GitStat
+        <div className="flex items-center gap-4">
+          <img src="/menubar-icon.png" alt="GitStat" className="w-5 h-5 invert" />
+          <div className="font-mono text-xs tracking-[0.4em] font-bold uppercase">
+            GitStat
+          </div>
         </div>
         <div className="font-mono text-xs tracking-[0.2em] text-blue-400">
           {time || "00:00:00"}
@@ -144,7 +147,10 @@ export default function Home() {
             transition={{ duration: 1 }}
             className="inline-block mb-8 px-5 py-1.5 border border-white/10 rounded-full text-[10px] font-mono uppercase tracking-[0.3em] bg-white/5 backdrop-blur-md"
           >
-            Engineering Intelligence System
+            <div className="flex items-center gap-2">
+              <img src="/menubar-icon.png" alt="" className="w-3 h-3 invert opacity-70" />
+              <span>Engineering Intelligence System</span>
+            </div>
           </motion.div>
 
           <div className="relative">
@@ -251,7 +257,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-1px bg-white/10 border border-white/10 rounded-[2rem] overflow-hidden">
             {[
-              { title: "ALWAYS VISIBLE", desc: "Minimal menubar presence. High-fidelity stats, always one click away.", icon: "01" },
+              { title: "ALWAYS VISIBLE", desc: "Minimal menubar presence. High-fidelity stats, always one click away.", icon: <img src="/menubar-icon.png" className="w-10 h-10 invert" /> },
               { title: "BRUTALIST DESIGN", desc: "Aesthetic reports designed for the modern developer's social presence.", icon: "02" },
               { title: "ZERO FRICTION", desc: "No complex setup. Just your raw additions, deletions, and commits.", icon: "03" }
             ].map((feat, i) => (
@@ -269,6 +275,99 @@ export default function Home() {
                 <p className="text-slate-400 leading-relaxed text-lg">{feat.desc}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* DMG Installation Guide */}
+      <section className="py-40 px-6 relative overflow-hidden">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="font-chakra text-4xl md:text-6xl font-bold uppercase tracking-tighter mb-4">
+              Seamless Installation.
+            </h2>
+            <p className="font-space text-lg text-slate-400">
+              Drag GitStat into your Applications folder to begin tracking.
+            </p>
+          </div>
+
+          <div className="relative bg-white/[0.03] border border-white/10 rounded-[3rem] p-12 md:p-20 backdrop-blur-xl overflow-hidden">
+            {/* Background Grid */}
+            <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+              backgroundSize: "40px 40px",
+            }} />
+            
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12 md:gap-0">
+              {/* App Icon */}
+              <motion.div 
+                initial={{ x: -50, opacity: 0 }}
+                whileInView={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="w-32 h-32 md:w-40 md:h-40 bg-white/5 rounded-[2.5rem] p-6 flex items-center justify-center border border-white/10 shadow-2xl relative group">
+                  <div className="absolute inset-0 bg-blue-500/10 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <img src="/menubar-icon.png" alt="GitStat App" className="w-20 h-20 invert relative z-10" />
+                </div>
+                <span className="font-mono text-xs text-white/40 tracking-[0.2em] font-bold uppercase">GitStat.app</span>
+              </motion.div>
+
+              {/* Animated Arrow */}
+              <div className="flex-1 flex items-center justify-center py-8 md:py-0">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  className="relative w-full max-w-[200px]"
+                >
+                  <svg viewBox="0 0 200 40" fill="none" className="w-full">
+                    <motion.path 
+                      d="M10 20H190" 
+                      stroke="url(#arrowGradient)" 
+                      strokeWidth="3" 
+                      strokeDasharray="10 10"
+                      initial={{ strokeDashoffset: 100 }}
+                      animate={{ strokeDashoffset: 0 }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    />
+                    <path d="M180 10L195 20L180 30" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    <defs>
+                      <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="rgba(59, 130, 246, 0)" />
+                        <stop offset="50%" stopColor="rgba(59, 130, 246, 1)" />
+                        <stop offset="100%" stopColor="rgba(34, 197, 94, 1)" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-8">
+                    <span className="font-mono text-[10px] text-blue-400 font-black tracking-[0.4em] whitespace-nowrap uppercase animate-pulse">
+                      Drag to install
+                    </span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Applications Folder */}
+              <motion.div 
+                initial={{ x: 50, opacity: 0 }}
+                whileInView={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="w-32 h-32 md:w-40 md:h-40 bg-white/5 rounded-[2.5rem] flex items-center justify-center border border-white/10 shadow-2xl relative">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" className="opacity-40">
+                    <path d="M22 19V9C22 7.89543 21.1046 7 20 7H12L10 4H4C2.89543 4 2 4.89543 2 6V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19Z" />
+                    <path d="M12 11L12 17" strokeLinecap="round" />
+                    <path d="M9 14L15 14" strokeLinecap="round" />
+                  </svg>
+                  <div className="absolute top-2 right-4">
+                    <div className="text-[8px] font-mono font-black text-white/20 tracking-widest uppercase">system_folder</div>
+                  </div>
+                </div>
+                <span className="font-mono text-xs text-white/40 tracking-[0.2em] font-bold uppercase">Applications</span>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -301,7 +400,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-20 px-6 border-t border-white/5 bg-[#010204]">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
-          <div className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.5em]">
+          <div className="flex items-center gap-3 font-mono text-[10px] text-slate-500 uppercase tracking-[0.5em]">
+            <img src="/menubar-icon.png" alt="" className="w-3 h-3 opacity-50 invert" />
             GitStat // The Architecture of Progress
           </div>
           <div className="flex gap-12 font-mono text-[10px] text-slate-500 uppercase tracking-[0.5em]">
