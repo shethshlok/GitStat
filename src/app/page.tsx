@@ -107,6 +107,18 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleDownload = () => {
+    // Track event in Microsoft Clarity
+    if (typeof window !== "undefined" && (window as any).clarity) {
+      (window as any).clarity("event", "download_dmg");
+    }
+    
+    const link = document.createElement('a');
+    link.href = '/GitStat.dmg';
+    link.download = 'GitStat.dmg';
+    link.click();
+  };
+
   return (
     <main ref={containerRef} className="relative min-h-screen bg-[#020408] text-[#e2e8f0] overflow-x-hidden selection:bg-blue-600">
       <div className="noise-overlay opacity-20" />
@@ -177,12 +189,7 @@ export default function Home() {
             className="flex flex-col sm:flex-row gap-6 justify-center"
           >
             <MagneticButton 
-              onClick={() => {
-                const link = document.createElement('a');
-                link.href = '/GitStat.dmg';
-                link.download = 'GitStat.dmg';
-                link.click();
-              }}
+              onClick={handleDownload}
               className="px-12 py-5 bg-white text-black font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-transform hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
             >
               Download Now
@@ -384,12 +391,7 @@ export default function Home() {
             Elevate Your<br/>Engineering Story.
           </h2>
           <MagneticButton 
-            onClick={() => {
-              const link = document.createElement('a');
-              link.href = '/GitStat.dmg';
-              link.download = 'GitStat.dmg';
-              link.click();
-            }}
+            onClick={handleDownload}
             className="px-16 py-7 bg-white text-black font-black uppercase tracking-[0.3em] text-lg rounded-full shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-transform"
           >
             Get GitStat Now
