@@ -111,15 +111,6 @@ struct SettingsView: View {
                             .font(.headline)
                         Spacer()
                         
-                        if statsViewModel.selectedRange == .custom {
-                            Stepper(value: $statsViewModel.customDays, in: 2...90) {
-                                Text("\(statsViewModel.customDays) days")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            }
-                            .controlSize(.small)
-                            .padding(.trailing, 8)
-                        }
-                        
                         Picker("", selection: $statsViewModel.selectedRange) {
                             ForEach(TimeRange.chartableRanges) { range in
                                 Text(range.label).tag(range)

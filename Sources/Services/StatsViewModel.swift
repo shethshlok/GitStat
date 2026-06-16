@@ -5,7 +5,6 @@ enum TimeRange: Int, CaseIterable, Identifiable {
     case day24h = 1
     case week1w = 7
     case month1m = 30
-    case custom = 0
     
     var id: Int { self.rawValue }
     var label: String {
@@ -13,13 +12,12 @@ enum TimeRange: Int, CaseIterable, Identifiable {
         case .day24h: return "24H"
         case .week1w: return "1W"
         case .month1m: return "1M"
-        case .custom: return "CUST"
         }
     }
     
     // Ranges that support historical charting
     static var chartableRanges: [TimeRange] {
-        return [.week1w, .month1m, .custom]
+        return [.week1w, .month1m]
     }
 }
 
@@ -57,14 +55,6 @@ class StatsViewModel: ObservableObject {
     @Published var showActivityLog: Bool = true {
         didSet { UserDefaults.standard.set(showActivityLog, forKey: "showActivityLog") }
     }
-    @Published var customDays: Int = 14 {
-        didSet { 
-            UserDefaults.standard.set(customDays, forKey: "customDays")
-            if selectedRange == .custom { 
-                Task { @MainActor in updateStatsFromLocalStore() }
-            }
-        }
-    }
     @Published var selectedRange: TimeRange = .day24h {
         didSet {
             Task { @MainActor in
@@ -85,8 +75,6 @@ class StatsViewModel: ObservableObject {
         self.userAvatar = UserDefaults.standard.string(forKey: "githubAvatar")
         self.showActivityInMenuBar = UserDefaults.standard.bool(forKey: "showActivityInMenuBar")
         self.showActivityLog = UserDefaults.standard.object(forKey: "showActivityLog") as? Bool ?? true
-        let savedCustom = UserDefaults.standard.integer(forKey: "customDays")
-        self.customDays = savedCustom == 0 ? 14 : savedCustom
         
         Task { @MainActor in
             // Initial sync with local store
@@ -108,7 +96,7 @@ class StatsViewModel: ObservableObject {
     
     @MainActor
     private func updateStatsFromLocalStore() {
-        let days = selectedRange == .custom ? customDays : selectedRange.rawValue
+        let days = selectedRange.rawValue
         self.stats = localStore.getStats(for: days)
         self.dailyStats = localStore.getDailyStats(for: days)
     }
@@ -196,7 +184,7 @@ class StatsViewModel: ObservableObject {
     func fetchStats() {
         currentFetchTask?.cancel()
         currentFetchTask = Task {
-            await performFetchStats(allPages: true)
+            await performFetchStats(allPages: false)
         }
     }
     
