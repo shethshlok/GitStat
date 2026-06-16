@@ -1,0 +1,9 @@
+"/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/AppDelegate.swift":
+  objc-header: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat-Swift.h"
+  swiftmodule: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat.swiftmodule"
+  dependencies: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat-master.d"
+  abi-baseline-json: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat.abi.json"
+  diagnostics: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat-master.dia"
+  const-values: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat-master.swiftconstvalues"
+  swiftsourceinfo: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat.swiftsourceinfo"
+  swiftdoc: "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/arm64/GitStat.swiftdoc"

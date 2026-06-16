@@ -1,0 +1,65 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "ea379ab775562d52375c589118ac2893e10717181a57378e1d454b6a9e84ab08"
+    }
+  ],
+  "containerPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/GitStat.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "arm64",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : false,
+      "platform" : "macosx",
+      "sdk" : "macosx15.2",
+      "sdkVariant" : "macos",
+      "supportedArchitectures" : [
+        "arm64e",
+        "arm64",
+        "x86_64"
+      ],
+      "targetArchitecture" : "arm64"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Products",
+      "derivedDataPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output",
+      "indexDataStoreFolderPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Release",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "COLOR_DIAGNOSTICS" : "YES",
+          "diagnostic_message_length" : "147",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

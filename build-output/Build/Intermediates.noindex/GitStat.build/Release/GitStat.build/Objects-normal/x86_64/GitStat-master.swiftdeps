@@ -1,0 +1,18 @@
+version: "Apple Swift version 6.0.3 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)"
+options: "72d144d74d02dc7bb91a64f1a1c4fc0f4ea2deb32c8f37573d56b941501b4057"
+build_start_time: [1781568600, 268730000]
+build_end_time: [1781568615, 268899000]
+inputs:
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/AppDelegate.swift": [1774899758, 677903320]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/GitStatApp.swift": [1772318537, 281499103]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/KeychainManager.swift": [1774852774, 962872313]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/LocalStore.swift": [1774895378, 391089583]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Logger.swift": [1772675759, 496939472]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/GitHubAPI.swift": [1774896015, 298513235]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/GitHubAuthService.swift": [1772675257, 622137663]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/StatsViewModel.swift": [1781568551, 373857616]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/PopoverView.swift": [1774882462, 92006399]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/SettingsView.swift": [1781567154, 467318632]
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/StatsShareView.swift": [1773017497, 448649470]
+  ? "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/DerivedSources/GeneratedAssetSymbols.swift"
+  : [1781568597, 633262301]

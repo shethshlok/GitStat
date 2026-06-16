@@ -1,0 +1,70 @@
+{
+  "" : {
+    "const-values" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStat-master.swiftconstvalues",
+    "dependencies" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStat-master.d",
+    "diagnostics" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStat-master.dia",
+    "emit-module-dependencies" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStat-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStat-master-emit-module.dia",
+    "swift-dependencies" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStat-master.swiftdeps"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GeneratedAssetSymbols.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/AppDelegate.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/AppDelegate.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/AppDelegate.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/AppDelegate.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/GitStatApp.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStatApp.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStatApp.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitStatApp.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/KeychainManager.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/KeychainManager.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/KeychainManager.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/KeychainManager.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/LocalStore.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/LocalStore.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/LocalStore.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/LocalStore.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Logger.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/Logger.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/Logger.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/Logger.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/GitHubAPI.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitHubAPI.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitHubAPI.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitHubAPI.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/GitHubAuthService.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitHubAuthService.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitHubAuthService.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/GitHubAuthService.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/StatsViewModel.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/StatsViewModel.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/StatsViewModel.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/StatsViewModel.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/PopoverView.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/PopoverView.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/PopoverView.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/PopoverView.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/SettingsView.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/SettingsView.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/SettingsView.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/SettingsView.o"
+  },
+  "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/StatsShareView.swift" : {
+    "index-unit-output-path" : "/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/StatsShareView.o",
+    "llvm-bc" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/StatsShareView.bc",
+    "object" : "/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/Objects-normal/x86_64/StatsShareView.o"
+  }
+}

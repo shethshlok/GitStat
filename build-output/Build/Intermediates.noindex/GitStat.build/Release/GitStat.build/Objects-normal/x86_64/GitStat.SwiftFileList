@@ -1,0 +1,12 @@
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/AppDelegate.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/GitHubAPI.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/GitHubAuthService.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/LocalStore.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/App/GitStatApp.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Logger.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/PopoverView.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/StatsShareView.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Views/SettingsView.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/Services/StatsViewModel.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/Sources/KeychainManager.swift
+/Users/shloksheth/Desktop/Projects/gitstat/GitStat/build-output/Build/Intermediates.noindex/GitStat.build/Release/GitStat.build/DerivedSources/GeneratedAssetSymbols.swift
