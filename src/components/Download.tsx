@@ -29,7 +29,8 @@ export function Download() {
           <AnimateIn delay={0.2}>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <motion.a
-                href="#"
+                href="/GitStat.dmg"
+                download="GitStat.dmg"
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 60px rgba(255,255,255,0.15)" }}
                 whileTap={{ scale: 0.97 }}
                 className="group flex items-center gap-3 bg-white text-black font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-white/10"

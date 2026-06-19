@@ -147,6 +147,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     
     @objc private func togglePopover() {
+        Task { @MainActor in
+            statsViewModel.syncFromMenuBarClick()
+        }
+
         if popover.isShown {
             popover.performClose(nil)
         } else {

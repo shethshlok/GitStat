@@ -187,6 +187,12 @@ class StatsViewModel: ObservableObject {
             await performFetchStats(allPages: false)
         }
     }
+
+    @MainActor
+    func syncFromMenuBarClick() {
+        guard isAuthenticated else { return }
+        fetchStats()
+    }
     
     @MainActor
     private func performFetchStats(allPages: Bool = false) async {
