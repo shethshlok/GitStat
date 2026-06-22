@@ -5,6 +5,7 @@ import Combine
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private var statusMenu: NSMenu!
     private var eventMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
     
@@ -23,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        setupStatusMenu()
         
         if let button = statusItem.button {
             let icon: NSImage?
@@ -43,9 +45,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             
             button.image = icon
             button.imagePosition = .imageLeading
-            button.action = #selector(togglePopover)
+            button.action = #selector(handleStatusItemClick(_:))
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
+    }
+
+    private func setupStatusMenu() {
+        statusMenu = NSMenu()
+        let quitItem = NSMenuItem(title: "Quit GitStat", action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        statusMenu.addItem(quitItem)
     }
     
     private func setupObservers() {
@@ -146,7 +156,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
     
-    @objc private func togglePopover() {
+    @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showStatusMenu(relativeTo: sender)
+        } else {
+            togglePopover()
+        }
+    }
+
+    private func showStatusMenu(relativeTo button: NSStatusBarButton) {
+        if popover.isShown {
+            popover.performClose(nil)
+        }
+
+        statusMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height), in: button)
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
+    }
+
+    private func togglePopover() {
         Task { @MainActor in
             statsViewModel.syncFromMenuBarClick()
         }
