@@ -28,7 +28,11 @@ export function ReportMockup() {
   const [dateStr, setDateStr] = useState("MAY 27, 2026");
 
   useEffect(() => {
-    setDateStr(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase());
+    const timeout = window.setTimeout(() => {
+      setDateStr(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase());
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   return (

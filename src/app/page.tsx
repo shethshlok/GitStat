@@ -1,10 +1,20 @@
 "use client";
 
 import { motion, useInView, animate, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ReportMockup } from "../components/ReportMockup";
 
 // --- Components ---
+
+declare global {
+  interface Window {
+    clarity?: (type: "event", name: string) => void;
+  }
+}
+
+const downloadUrl =
+  process.env.NEXT_PUBLIC_GITSTAT_DMG_URL ??
+  "https://github.com/shethshlok/GitStat/releases/latest/download/GitStat.dmg";
 
 function RollingNumber({ targetNumber }: { targetNumber: number }) {
   const [displayValue, setDisplayValue] = useState("0");
@@ -102,19 +112,21 @@ export default function Home() {
   const opacityFade = useTransform(smoothProgress, [0, 0.2], [1, 0]);
 
   useEffect(() => {
-    setTime(new Date().toLocaleTimeString("en-US", { hour12: false }));
+    const timeout = window.setTimeout(() => {
+      setTime(new Date().toLocaleTimeString("en-US", { hour12: false }));
+    }, 0);
     const interval = setInterval(() => setTime(new Date().toLocaleTimeString("en-US", { hour12: false })), 1000);
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleDownload = () => {
-    // Track event in Microsoft Clarity
-    if (typeof window !== "undefined" && (window as any).clarity) {
-      (window as any).clarity("event", "download_dmg");
-    }
+    window.clarity?.("event", "download_dmg");
     
     const link = document.createElement('a');
-    link.href = '/GitStat.dmg';
+    link.href = downloadUrl;
     link.download = 'GitStat.dmg';
     link.click();
   };
@@ -239,7 +251,7 @@ export default function Home() {
           </div>
 
           <p className="font-space text-2xl md:text-4xl text-slate-300 max-w-5xl mx-auto leading-tight uppercase font-medium">
-            Don't let your contributions get lost in the noise. 
+            Don&apos;t let your contributions get lost in the noise. 
             <span className="text-white"> Quantify your impact</span> for the people who matter.
           </p>
         </motion.div>
@@ -264,7 +276,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-1px bg-white/10 border border-white/10 rounded-[2rem] overflow-hidden">
             {[
-              { title: "ALWAYS VISIBLE", desc: "Minimal menubar presence. High-fidelity stats, always one click away.", icon: <img src="/menubar-icon.png" className="w-10 h-10 invert" /> },
+              { title: "ALWAYS VISIBLE", desc: "Minimal menubar presence. High-fidelity stats, always one click away.", icon: <img src="/menubar-icon.png" alt="" className="w-10 h-10 invert" /> },
               { title: "BRUTALIST DESIGN", desc: "Aesthetic reports designed for the modern developer's social presence.", icon: "02" },
               { title: "ZERO FRICTION", desc: "No complex setup. Just your raw additions, deletions, and commits.", icon: "03" }
             ].map((feat, i) => (
@@ -411,7 +423,7 @@ export default function Home() {
             <a href="#" className="hover:text-white transition-colors">GitHub</a>
           </div>
           <div className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.5em]">
-            By <a href="https://shloksheth.tech" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Shlok Sheth</a> // © 2026
+            By <a href="https://shloksheth.tech" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Shlok Sheth</a> <span aria-hidden="true">{"//"}</span> © 2026
           </div>
         </div>
       </footer>
