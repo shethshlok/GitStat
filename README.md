@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## macOS DMG builds
+
+GitHub Actions builds `GitStat.app`, packages `GitStat.dmg`, uploads it as a workflow artifact, and publishes it to the `latest` GitHub Release on every push to `main`.
+
+The website download button points to:
+
+```text
+https://github.com/shethshlok/GitStat/releases/latest/download/GitStat.dmg
+```
+
+Set `NEXT_PUBLIC_GITSTAT_DMG_URL` in the web deployment if you need to override that URL.

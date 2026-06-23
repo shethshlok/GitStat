@@ -3,6 +3,10 @@
 import { motion } from "framer-motion";
 import { AnimateIn } from "./AnimateIn";
 
+const downloadUrl =
+  process.env.NEXT_PUBLIC_GITSTAT_DMG_URL ??
+  "https://github.com/shethshlok/GitStat/releases/latest/download/GitStat.dmg";
+
 export function Download() {
   return (
     <section id="download" className="relative py-32 px-6">
@@ -29,7 +33,7 @@ export function Download() {
           <AnimateIn delay={0.2}>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <motion.a
-                href="/GitStat.dmg"
+                href={downloadUrl}
                 download="GitStat.dmg"
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 60px rgba(255,255,255,0.15)" }}
                 whileTap={{ scale: 0.97 }}
